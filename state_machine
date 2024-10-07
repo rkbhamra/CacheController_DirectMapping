@@ -1,0 +1,49 @@
+#state machine
+
+cacheAddr = "nofwrofh"
+vbit = 0
+tag_compare = 0
+blah = 1
+
+#--extract the tag, index and offset from the cache address
+tag = cacheAddr[15:8]
+index = cacheAddr[7:5]
+offset = cacheAddr[4:0]
+
+#--set RDY to 0 to stop accepting instructions
+RDY = 0 
+
+if vbit == 0:
+    hit = 0
+    if wr_rd == 0:
+        #Block is invalid. Fetch block from main memory, update tag, set vBit to 1, write to cache.
+    elif wr_rd == 1:
+        #Block is invalid. Fetch block from main memory, update tag, and set vBit to 1.
+        vbit = 1
+        break
+elif vbit == 1:
+    if tag_compare == 1:
+        hit = 1
+        if dbit == 1:
+            if wr_rd == 1:
+                #Block is valid and dirty. Read directly from cache.
+            elif wr_rd == 0:
+                #Block is valid and dirty. Write directly to cache, dBit remains 1 (dirty).
+        if dbit == 0:
+            wr_rd == 1:
+                #Block is valid and clean. Read directly from cache.
+            wr_rd == 0:
+                #Block is valid and clean. Write directly to cache and set dBit to 1 (dirty).
+    if tag_compare == 0:
+        hit = 0
+        if dbit == 0:
+            if wr_rd == 1:
+                #Block is valid but clean. Fetch new block from main memory, update tag, and set vBit to 1.
+            if wr_rd == 0:
+                #Block is valid but clean. Fetch new block from main memory, update tag, and set vBit to 1. Write to cache. dBit set to 1.
+        if dbit == 1:
+            if wr_rd == 1:
+                #Block is valid and dirty. Write back to memory, fetch new block from main memory, update tag, and set vBit to 1.
+            if wr_rd == 0:
+                #Block is valid and dirty. Write back to memory, fetch new block from main memory, update tag, set vBit to 1. Write to cache, set dBit to 1.
+
