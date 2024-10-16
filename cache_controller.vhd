@@ -43,11 +43,11 @@ entity controller is
            RDY : out  STD_LOGIC := '0';
            memAddr : out  STD_LOGIC_VECTOR (15 downto 0);
            wr_rd_m : out  STD_LOGIC;
-           memStrb : out  STD_LOGIC;
+           memStrb : out  STD_LOGIC);
            --dbit : out  STD_LOGIC;
            --vbit : out  STD_LOGIC;
            --index_offset : out  STD_LOGIC_VECTOR (7 downto 0);
-           wen : out  STD_LOGIC);
+--           wen : out  STD_LOGIC);
 end controller;
 
 architecture Behavioral of controller is
@@ -116,8 +116,12 @@ architecture Behavioral of controller is
 
     --Delays and Buffers
     signal clk_dly : STD_LOGIC := '0';
-    signal RDY_buf : STD_LOGIC := '1';
+    signal RDY_buf : STD_LOGIC := '0';
+	 signal aaaaa : STD_LOGIC := '1';
 	 signal memAddr_buf : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
+	 
+	 signal SDRAM_count : STD_LOGIC_VECTOR(5 downto 0) := "000000";
+--	 signal BRAM_count : STD_LOGIC_VECTOR(5 downto 0) := "000000";
 
 begin
 	
@@ -143,24 +147,28 @@ begin
    process (clk)
 	begin
 		 if rising_edge(clk) then
-			  if rst = '1' then
+--			  if rst = '1' then
+					
+--			  end if;
+			  -- Initialization
+			  if ((RDY_buf = '1') and (cStrb = '1')) then
+					tag <= cacheAddr(15 downto 8);
+					index <= cacheAddr(7 downto 5);
+					offset <= cacheAddr(4 downto 0);
+					cache_write_enable(0) <= '0';
+					RDY_buf <= '0';
+					RDY <= '0';
+				elsif(RDY_buf = '1') then
+					RDY <= '1';
+				elsif(aaaaa = '1') then
+					RDY_buf <= '1';
+					aaaaa <= '0';
 					-- Initialize all tag words to zero
 					for i in 0 to 7 loop
 						 tag_array(i).tag <= (others => '0'); -- Initialize tag to 0
 						 tag_array(i).vbit <= '0';             -- Initialize vbit to 0
 						 tag_array(i).dbit <= '0';             -- Initialize dbit to 0
 					end loop;
-			  end if;
-			  -- Initialization
-			  if ((RDY_buf = '1') and (cStrb = '1')) then
-					tag <= cacheAddr(15 downto 8);
-					index <= cacheAddr(7 downto 5);
-					offset <= cacheAddr(4 downto 0);
-					wen <= '0';
-					RDY_buf <= '0';
-					RDY <= '0';
-				elsif(RDY_buf = '1') then
-					RDY <= '1';
 			  end if;
 
 			  if RDY_buf = '0' then
@@ -169,26 +177,29 @@ begin
 						 wr_rd_m <= '1';  -- Read from SDRAM
 						 if mem_strb_buf = '0' then
 							  vbit <= '1';
-							  wen <= '1';
-							  memAddr <= tag & index & "00000";  -- Starting address
-							  memAddr_buf <= tag & index & "00000";
-							  cache_index_offset <= index & "00000";  -- Cache address
+							  cache_write_enable(0) <= '1';
+							  SDRAM_count <= "000000";
+							  memAddr <= tag & index & SDRAM_count(5 downto 1);  -- Starting address
+							  memAddr_buf <= tag & index & SDRAM_count(5 downto 1);
+							  cache_index_offset <= index & SDRAM_count(5 downto 1);  -- Cache address
 							  memStrb <= '1';  -- Turn on strobe
 							  mem_strb_buf <= '1';
 						 elsif clk_dly = '1' then
-							  wen <= '0';  -- Stop writing to cache
+							  cache_write_enable(0) <= '0';  -- Stop writing to cache
 							  memStrb <= '0';  -- Disable SDRAM
 							  mem_strb_buf <= '0';
 							  clk_dly <= '0';
 							  tag_array(to_integer(unsigned(index))).vbit <= '1';  -- Data is valid
 							  tag_array(to_integer(unsigned(index))).tag <= tag;  -- Update tag
 							  vbit <= '0';  -- Next data from CPU
-						 elsif memAddr_buf(4 downto 0) = "11111" then
+							  SDRAM_count <= "000000";
+						 elsif SDRAM_count = "111111" then
 							  clk_dly <= '1';
 						 else
-							  memAddr <= memAddr_buf + '1';
-							  memAddr_buf <= memAddr_buf + '1';
-							  cache_index_offset <= cache_index_offset + '1';
+							  memAddr <= tag & index & SDRAM_count(5 downto 1);
+							  memAddr_buf <= tag & index & SDRAM_count(5 downto 1);
+							  cache_index_offset <= index & SDRAM_count(5 downto 1);
+							  SDRAM_count <= SDRAM_count + '1';
 						 end if;
 
 					elsif tag_array(to_integer(unsigned(index))).vbit = '1' then
@@ -199,15 +210,14 @@ begin
 									RDY_buf <= '1';
 									RDY <= '1';
 									clk_dly <= '0';
-									wen <= '0';
-							  end if;
-							  if wr_rd_c = '1' then
+									cache_write_enable(0) <= '0';
+							  elsif wr_rd_c = '0' then
 									cache_index_offset <= index & offset;  -- Reading
-									wen <= '0';
+									cache_write_enable(0) <= '0';
 									clk_dly <= '1';
 							  else
 									cache_index_offset <= index & offset;  -- Writing
-									wen <= '1';
+									cache_write_enable(0) <= '1';
 									tag_array(to_integer(unsigned(index))).dbit <= '1';
 									clk_dly <= '1';
 							  end if;
@@ -217,27 +227,30 @@ begin
 									wr_rd_m <= '1';  -- Read from SDRAM
 									if mem_strb_buf = '0' then
 										 vbit <= '1';
-										 wen <= '1';
-										 memAddr <= tag & index & "00000";
-										 memAddr_buf <= tag & index & "00000";
-										 cache_index_offset <= index & "00000";
+										 SDRAM_count <= "000000";
+										 cache_write_enable(0) <= '1';
+										 memAddr <= tag & index & SDRAM_count(5 downto 1);
+										 memAddr_buf <= tag & index & SDRAM_count(5 downto 1);
+										 cache_index_offset <= index & SDRAM_count(5 downto 1);
 										 memStrb <= '1';
 										 mem_strb_buf <= '1';
 									elsif clk_dly = '1' then
-										 wen <= '0';
+										 cache_write_enable(0) <= '0';
 										 memStrb <= '0';
 										 mem_strb_buf <= '0';
 										 clk_dly <= '0';
 										 tag_array(to_integer(unsigned(index))).vbit <= '1';
 										 tag_array(to_integer(unsigned(index))).tag <= tag;
 										 vbit <= '0';
+										 SDRAM_count <= "000000";
 									else
-										 if memAddr_buf(4 downto 0) = "11111" then
+										 if SDRAM_count = "111111" then
 											  clk_dly <= '1';
 										 else
-											  memAddr <= memAddr_buf + '1';
-											  memAddr_buf <= memAddr_buf + '1';
-											  cache_index_offset <= cache_index_offset + '1';
+											  memAddr <= tag & index & SDRAM_count(5 downto 1);
+											  memAddr_buf <= tag & index & SDRAM_count(5 downto 1);
+											  cache_index_offset <= index & SDRAM_count(5 downto 1);
+											  SDRAM_count <= SDRAM_count + '1';
 										 end if;
 									end if;
 
@@ -245,9 +258,10 @@ begin
 									wr_rd_m <= '0';  -- Write to SDRAM
 									if mem_strb_buf = '0' then
 										 dbit <= '1';
-										 memAddr <= tag_array(to_integer(unsigned(index))).tag & index & "00000";
-										 memAddr_buf <= tag_array(to_integer(unsigned(index))).tag & index & "00000";
-										 cache_index_offset <= index & "00000";
+										 SDRAM_count <= "000000";
+										 memAddr <= tag_array(to_integer(unsigned(index))).tag & index & SDRAM_count(5 downto 1);
+										 memAddr_buf <= tag_array(to_integer(unsigned(index))).tag & index & SDRAM_count(5 downto 1);
+										 cache_index_offset <= index & SDRAM_count(5 downto 1);
 										 memStrb <= '1';
 										 mem_strb_buf <= '1';
 									elsif clk_dly = '1' then
@@ -256,13 +270,15 @@ begin
 										 memStrb <= '0';
 										 tag_array(to_integer(unsigned(index))).dbit <= '0';
 										 dbit <= '0';
+										 SDRAM_count <= "000000";
 									else
-										 if memAddr_buf(4 downto 0) = "11111" then
+										 if SDRAM_count = "111111" then
 											  clk_dly <= '1';
 										 else
-											  memAddr <= memAddr_buf + '1';
-											  memAddr_buf <= memAddr_buf + '1';
-											  cache_index_offset <= cache_index_offset + '1';
+											  memAddr <= tag_array(to_integer(unsigned(index))).tag & index & SDRAM_count(5 downto 1);
+											  memAddr_buf <= tag_array(to_integer(unsigned(index))).tag & index & SDRAM_count(5 downto 1);
+											  cache_index_offset <= index & SDRAM_count(5 downto 1);
+											  SDRAM_count <= SDRAM_count + '1';
 										 end if;
 									end if;
 							  end if;
