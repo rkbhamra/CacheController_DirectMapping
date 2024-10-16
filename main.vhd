@@ -60,8 +60,8 @@ architecture Behavioral of main is
            RDY : out  STD_LOGIC;
            memAddr : out  STD_LOGIC_VECTOR (15 downto 0);
            wr_rd_m : out  STD_LOGIC;
-           memStrb : out  STD_LOGIC;
-           wen : out  STD_LOGIC);
+           memStrb : out  STD_LOGIC);
+--           wen : out  STD_LOGIC);
 	END COMPONENT;
 	
 	COMPONENT SDRAM_controller is
@@ -103,7 +103,7 @@ architecture Behavioral of main is
 	signal wr_rd_SDRAM_buf : STD_LOGIC;
 	signal MemStrb_SDRAM_buf : STD_LOGIC;
 	signal mem_din_buf : STD_LOGIC_VECTOR (7 downto 0);
-	signal rst_buf : STD_LOGIC := '1';
+	signal rst_buf : STD_LOGIC := '0';
 	signal control0 : STD_LOGIC_VECTOR (35 DOWNTO 0);
 	signal control1 : STD_LOGIC_VECTOR (35 DOWNTO 0);
 	signal ila_data : STD_LOGIC_VECTOR (63 DOWNTO 0);
@@ -161,12 +161,19 @@ begin
 		 CONTROL1 => control1
 	);
 	
-	--ila_data(15 downto 0) <= cacheAddr_buf;
-	ila_data(7 downto 0) <= cpu_data_out_buf;
-	ila_data(20) <= wr_rd_c_buf;
-	--ila_data(28 downto 19) <= mem_data_out_buf;
-	ila_data(16) <= trig_buf;
-	
-	
-end Behavioral;
 
+	ila_data (7 downto 0) <= cpu_data_out_buf;
+	ila_data (15 downto 8) <= mem_data_out_buf;
+	ila_data (23 downto 16) <= mem_din_buf;
+	ila_data (24) <= trig_buf;
+	ila_data (40 downto 25) <= cacheAddr_buf;
+	ila_data (41) <= wr_rd_c_buf;
+	ila_data (42) <= cStrb_buf;
+	ila_data (58 downto 43) <= MemAddr_SDRAM_buf;
+	ila_data (59) <= wr_rd_SDRAM_buf;
+	ila_data (60) <= MemStrb_SDRAM_buf;
+	ila_data (61) <= wr_rd_SDRAM_buf;
+	ila_data (62) <= rst_buf;
+	
+
+end Behavioral;
