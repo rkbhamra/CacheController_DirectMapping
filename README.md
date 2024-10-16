@@ -42,3 +42,7 @@ Table 1: Tabulated summary of the results
 ![image](https://github.com/user-attachments/assets/52fdc47c-e4ca-4302-8457-50028d1ff601)
 
 
+REFERENCES
+1. "Project#1 - Memory Hierarchy : Cache Controller," Toronto Metropolitan University, 2024. Available: https://courses.torontomu.ca/d2l/le/content/932599/viewContent/5951504/View
+2. L. Krischian, "Lecture 4 - Organization of Direct Mapped Cache," Toronto Metropolitan University, 2024. Available: https://courses.torontomu.ca/d2l/le/content/932599/viewContent/5951512/View
+
